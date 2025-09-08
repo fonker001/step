@@ -3,42 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StrideTrack - Offline Step Counter</title>
+    <title>Step Tracker - PWA</title>
+    <meta name="theme-color" content="#4361ee"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #2E7D32;
-            --primary-dark: #1B5E20;
-            --primary-light: #4CAF50;
-            --secondary: #FF9800;
-            --text: #212121;
-            --text-light: #757575;
-            --background: #F5F5F5;
-            --surface: #FFFFFF;
-            --error: #D32F2F;
-            --success: #388E3C;
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --text: #2d3748;
+            --text-light: #718096;
+            --background: #f7fafc;
+            --surface: #ffffff;
+            --success: #38b2ac;
+            --error: #e53e3e;
+            --warning: #dd6b20;
             --border-radius: 16px;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             --transition: all 0.3s ease;
         }
 
         .dark-mode {
-            --primary: #4CAF50;
-            --primary-dark: #2E7D32;
-            --primary-light: #81C784;
-            --text: #F5F5F5;
-            --text-light: #BDBDBD;
-            --background: #121212;
-            --surface: #1E1E1E;
-            --error: #EF5350;
-            --success: #66BB6A;
+            --primary: #5f7ff0;
+            --primary-dark: #4361ee;
+            --text: #e2e8f0;
+            --text-light: #a0aec0;
+            --background: #1a202c;
+            --surface: #2d3748;
+            --success: #4fd1c5;
+            --error: #fc8181;
+            --warning: #f6ad55;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
@@ -101,16 +102,16 @@
         }
 
         .step-counter {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             border-radius: 50%;
-            width: 280px;
-            height: 280px;
+            width: 250px;
+            height: 250px;
             margin: 0 auto 30px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 12px 30px rgba(46, 125, 50, 0.3);
+            box-shadow: 0 20px 25px -5px rgba(67, 97, 238, 0.3);
             border: 6px solid rgba(255, 255, 255, 0.1);
             position: relative;
             overflow: hidden;
@@ -118,8 +119,8 @@
         }
 
         .step-count {
-            font-size: 5rem;
-            font-weight: 700;
+            font-size: 4rem;
+            font-weight: bold;
             color: white;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         }
@@ -129,14 +130,6 @@
             color: rgba(255, 255, 255, 0.9);
             margin-top: 5px;
             font-weight: 500;
-        }
-
-        .progress-ring {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
         }
 
         .stats {
@@ -157,8 +150,8 @@
         }
 
         .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
+            font-size: 1.8rem;
+            font-weight: bold;
             color: var(--primary);
             margin-bottom: 5px;
         }
@@ -195,7 +188,6 @@
         button:hover {
             background: var(--primary-dark);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
         button:active {
@@ -220,14 +212,14 @@
             margin-top: 20px;
             padding: 12px 20px;
             border-radius: 50px;
-            background: rgba(76, 175, 80, 0.1);
+            background: rgba(56, 178, 172, 0.1);
             color: var(--success);
             font-weight: 500;
             transition: var(--transition);
         }
 
         .status.offline {
-            background: rgba(211, 47, 47, 0.1);
+            background: rgba(229, 62, 62, 0.1);
             color: var(--error);
         }
 
@@ -246,10 +238,11 @@
             background: var(--secondary);
             margin-top: 30px;
             padding: 14px 28px;
+            display: none; /* Hidden by default, shown when PWA is available */
         }
 
         .install-btn:hover {
-            background: #F57C00;
+            background: #5a0892;
         }
 
         footer {
@@ -259,47 +252,18 @@
             font-size: 0.9rem;
         }
 
-        .goal-progress {
-            margin: 20px 0;
-            padding: 0 10px;
-        }
-
-        .goal-text {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            color: var(--text-light);
-        }
-
-        .progress-bar {
-            height: 8px;
-            width: 100%;
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--primary);
-            border-radius: 4px;
-            transition: var(--transition);
-            width: 0%;
-        }
-
         @media (max-width: 500px) {
             .container {
                 padding: 20px;
             }
             
             .step-counter {
-                width: 220px;
-                height: 220px;
+                width: 200px;
+                height: 200px;
             }
             
             .step-count {
-                font-size: 3.5rem;
+                font-size: 3rem;
             }
             
             .stats {
@@ -327,104 +291,27 @@
             animation: stepPulse 0.5s ease;
         }
 
-        /* Settings panel */
-        .settings-panel {
+        .notification {
             position: fixed;
-            top: 0;
-            right: -350px;
-            width: 350px;
-            height: 100vh;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             background: var(--surface);
-            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-            transition: var(--transition);
-            z-index: 1000;
-            overflow-y: auto;
-        }
-
-        .settings-panel.open {
-            right: 0;
-        }
-
-        .settings-header {
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: var(--shadow);
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .settings-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .close-settings {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--text-light);
-            cursor: pointer;
-        }
-
-        .setting-group {
-            margin-bottom: 25px;
-        }
-
-        .setting-label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: 500;
-            color: var(--text);
-        }
-
-        .setting-input {
-            width: 100%;
-            padding: 12px 16px;
-            border-radius: 8px;
-            border: 1px solid var(--text-light);
-            background: var(--surface);
-            color: var(--text);
-            font-size: 1rem;
-        }
-
-        .setting-input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            gap: 10px;
+            z-index: 1000;
             opacity: 0;
             visibility: hidden;
             transition: var(--transition);
-            z-index: 999;
         }
 
-        .overlay.visible {
+        .notification.show {
             opacity: 1;
             visibility: visible;
-        }
-
-        .settings-btn {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--text-light);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .settings-btn:hover {
-            color: var(--primary);
         }
     </style>
 </head>
@@ -433,7 +320,7 @@
         <header>
             <div class="logo">
                 <div class="logo-icon"><i class="fas fa-shoe-prints"></i></div>
-                <div class="logo-text">StrideTrack</div>
+                <div class="logo-text">StepTracker</div>
             </div>
             <button class="theme-toggle" id="themeToggle">
                 <i class="fas fa-moon"></i>
@@ -443,19 +330,6 @@
         <div class="step-counter" id="stepCounter">
             <div class="step-count" id="stepCount">0</div>
             <div class="step-label">STEPS TODAY</div>
-            <svg class="progress-ring" width="280" height="280">
-                <circle id="progressCircle" stroke="rgba(255, 255, 255, 0.3)" stroke-width="6" fill="transparent" r="130" cx="140" cy="140"/>
-            </svg>
-        </div>
-        
-        <div class="goal-progress">
-            <div class="goal-text">
-                <span>Daily Goal: 10,000 steps</span>
-                <span id="progressPercentage">0%</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
         </div>
         
         <div class="stats">
@@ -483,57 +357,14 @@
             <i class="fas fa-download"></i> Install App
         </button>
     </div>
-    
-    <button class="settings-btn" id="settingsButton">
-        <i class="fas fa-cog"></i>
-    </button>
-    
-    <div class="settings-panel" id="settingsPanel">
-        <div class="settings-header">
-            <div class="settings-title">Settings</div>
-            <button class="close-settings" id="closeSettings">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="setting-group">
-            <label class="setting-label" for="stepGoal">Daily Step Goal</label>
-            <input type="number" class="setting-input" id="stepGoal" value="10000" min="1000" step="1000">
-        </div>
-        
-        <div class="setting-group">
-            <label class="setting-label" for="stepLength">Step Length (cm)</label>
-            <input type="number" class="setting-input" id="stepLength" value="70" min="30" step="1">
-        </div>
-        
-        <div class="setting-group">
-            <label class="setting-label" for="weight">Weight (kg)</label>
-            <input type="number" class="setting-input" id="weight" value="70" min="30" step="1">
-        </div>
-        
-        <div class="setting-group">
-            <label class="setting-label" for="sensitivity">Step Sensitivity</label>
-            <input type="range" class="setting-input" id="sensitivity" min="5" max="20" value="12">
-            <div id="sensitivityValue">Medium</div>
-        </div>
-        
-        <button class="secondary" style="width: 100%; margin-top: 20px;">
-                <i class="fas fa-history"></i> View History
-            </button>
-            
-            <button class="secondary" style="width: 100%; margin-top: 10px;">
-                <i class="fas fa-trophy"></i> Achievements
-            </button>
-            
-            <button class="secondary" style="width: 100%; margin-top: 10px;">
-                <i class="fas fa-sync"></i> Sync Data
-            </button>
-        </div>
-        
-        <div class="overlay" id="overlay"></div>
+
+    <div class="notification" id="notification">
+        <i class="fas fa-info-circle"></i>
+        <span id="notificationText"></span>
+    </div>
     
     <footer>
-        <p>StrideTrack &copy; 2023 | Works completely offline once installed</p>
+        <p>StepTracker &copy; 2023 | Works completely offline once installed</p>
     </footer>
 
     <script>
@@ -545,20 +376,10 @@
         const resetBtn = document.getElementById('resetBtn');
         const statusIndicator = document.getElementById('statusIndicator');
         const installButton = document.getElementById('installButton');
-        const stepCounter = document.getElementById('stepCounter');
-        const progressFill = document.getElementById('progressFill');
-        const progressPercentage = document.getElementById('progressPercentage');
+        const stepCounter = document.querySelector('.step-counter');
         const themeToggle = document.getElementById('themeToggle');
-        const settingsButton = document.getElementById('settingsButton');
-        const settingsPanel = document.getElementById('settingsPanel');
-        const closeSettings = document.getElementById('closeSettings');
-        const overlay = document.getElementById('overlay');
-        const progressCircle = document.getElementById('progressCircle');
-        const stepGoalInput = document.getElementById('stepGoal');
-        const stepLengthInput = document.getElementById('stepLength');
-        const weightInput = document.getElementById('weight');
-        const sensitivityInput = document.getElementById('sensitivity');
-        const sensitivityValue = document.getElementById('sensitivityValue');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
 
         // Step counter variables
         let stepCount = 0;
@@ -567,57 +388,27 @@
         let sensitivity = 12;
         let stepLength = 0.7; // meters
         let weight = 70; // kg
-        let dailyGoal = 10000;
-        let circumference = 2 * Math.PI * 130;
-
-        // Set progress circle stroke
-        progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
-        progressCircle.style.strokeDashoffset = circumference;
+        let deferredPrompt = null;
 
         // Check if device has accelerometer
         if (!window.DeviceMotionEvent) {
-            showError('Sorry, your device does not support step counting. This app requires a device with an accelerometer.');
+            showNotification('Your device does not support step counting', 'error');
             startBtn.disabled = true;
         }
         
         // Initialize from local storage
         function initFromStorage() {
             const savedStepCount = localStorage.getItem('stepCount');
-            const savedStepGoal = localStorage.getItem('stepGoal');
-            const savedStepLength = localStorage.getItem('stepLength');
-            const savedWeight = localStorage.getItem('weight');
-            const savedSensitivity = localStorage.getItem('sensitivity');
-            const savedDarkMode = localStorage.getItem('darkMode');
             
             if (savedStepCount) {
                 stepCount = parseInt(savedStepCount);
                 updateUI();
             }
             
-            if (savedStepGoal) {
-                dailyGoal = parseInt(savedStepGoal);
-                stepGoalInput.value = dailyGoal;
-            }
-            
-            if (savedStepLength) {
-                stepLength = parseFloat(savedStepLength) / 100; // Convert cm to m
-                stepLengthInput.value = savedStepLength;
-            }
-            
-            if (savedWeight) {
-                weight = parseInt(savedWeight);
-                weightInput.value = weight;
-            }
-            
-            if (savedSensitivity) {
-                sensitivity = parseInt(savedSensitivity);
-                sensitivityInput.value = sensitivity;
-                updateSensitivityText();
-            }
-            
-            if (savedDarkMode === 'true') {
-                document.body.classList.add('dark-mode');
-                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            // Check if we have a saved deferred prompt
+            const savedPrompt = localStorage.getItem('deferredPrompt');
+            if (savedPrompt === 'true') {
+                installButton.style.display = 'block';
             }
             
             // Hide install button if already installed
@@ -655,179 +446,4 @@
         }
         
         // Function to stop step counting
-        function stopStepCounting() {
-            if (window.DeviceMotionEvent) {
-                window.removeEventListener('devicemotion', handleMotion);
-            }
-        }
-        
-        // Handle motion data for step detection
-        function handleMotion(event) {
-            const acceleration = event.accelerationIncludingGravity;
-            const accelerationMagnitude = Math.sqrt(
-                acceleration.x * acceleration.x +
-                acceleration.y * acceleration.y +
-                acceleration.z * acceleration.z
-            );
-            
-            // Simple step detection algorithm
-            if (Math.abs(accelerationMagnitude - lastAcceleration) > sensitivity) {
-                stepCount++;
-                updateUI();
-                
-                // Add visual feedback for each step
-                stepCounter.classList.add('step-pulse');
-                setTimeout(() => {
-                    stepCounter.classList.remove('step-pulse');
-                }, 500);
-                
-                // Save to local storage
-                localStorage.setItem('stepCount', stepCount);
-            }
-            
-            lastAcceleration = accelerationMagnitude;
-        }
-        
-        // Update UI with current values
-        function updateUI() {
-            stepCountElement.textContent = stepCount.toLocaleString();
-            
-            // Calculate distance (km) and calories
-            const distance = (stepCount * stepLength) / 1000;
-            const calories = Math.round(stepCount * weight * 0.0004); // Rough estimation
-            
-            distanceElement.textContent = distance.toFixed(2);
-            caloriesElement.textContent = calories.toLocaleString();
-            
-            // Update progress
-            const progress = Math.min(stepCount / dailyGoal, 1);
-            const percentage = Math.round(progress * 100);
-            progressFill.style.width = `${percentage}%`;
-            progressPercentage.textContent = `${percentage}%`;
-            
-            // Update circular progress
-            const offset = circumference - (progress * circumference);
-            progressCircle.style.strokeDashoffset = offset;
-        }
-        
-        // Check online/offline status
-        window.addEventListener('online', function() {
-            statusIndicator.classList.remove('offline');
-            statusIndicator.querySelector('span').textContent = 'Online & Synced';
-        });
-
-        window.addEventListener('offline', function() {
-            statusIndicator.classList.add('offline');
-            statusIndicator.querySelector('span').textContent = 'Offline Mode';
-        });
-
-        // Check initial connection status
-        if (!navigator.onLine) {
-            statusIndicator.classList.add('offline');
-            statusIndicator.querySelector('span').textContent = 'Offline Mode';
-        }
-        
-        // Install app functionality
-        let deferredPrompt;
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installButton.style.display = 'block';
-        });
-
-        installButton.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    installButton.style.display = 'none';
-                }
-                deferredPrompt = null;
-            }
-        });
-        
-        // Theme toggle
-        themeToggle.addEventListener('click', function() {
-            document.body.classList.toggle('dark-mode');
-            if (document.body.classList.contains('dark-mode')) {
-                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-                localStorage.setItem('darkMode', 'true');
-            } else {
-                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-                localStorage.setItem('darkMode', 'false');
-            }
-        });
-        
-        // Settings panel
-        settingsButton.addEventListener('click', function() {
-            settingsPanel.classList.add('open');
-            overlay.classList.add('visible');
-        });
-        
-        closeSettings.addEventListener('click', function() {
-            settingsPanel.classList.remove('open');
-            overlay.classList.remove('visible');
-        });
-        
-        overlay.addEventListener('click', function() {
-            settingsPanel.classList.remove('open');
-            overlay.classList.remove('visible');
-        });
-        
-        // Settings change handlers
-        stepGoalInput.addEventListener('change', function() {
-            dailyGoal = parseInt(this.value);
-            localStorage.setItem('stepGoal', dailyGoal);
-            updateUI();
-        });
-        
-        stepLengthInput.addEventListener('change', function() {
-            stepLength = parseInt(this.value) / 100; // Convert cm to m
-            localStorage.setItem('stepLength', this.value);
-            updateUI();
-        });
-        
-        weightInput.addEventListener('change', function() {
-            weight = parseInt(this.value);
-            localStorage.setItem('weight', weight);
-            updateUI();
-        });
-        
-        sensitivityInput.addEventListener('input', function() {
-            sensitivity = parseInt(this.value);
-            localStorage.setItem('sensitivity', sensitivity);
-            updateSensitivityText();
-        });
-        
-        function updateSensitivityText() {
-            if (sensitivity < 8) {
-                sensitivityValue.textContent = 'Low';
-            } else if (sensitivity < 15) {
-                sensitivityValue.textContent = 'Medium';
-            } else {
-                sensitivityValue.textContent = 'High';
-            }
-        }
-        
-        function showError(message) {
-            // In a real app, you'd show a proper error message UI
-            alert(message);
-        }
-        
-        // Initialize the app
-        window.addEventListener('load', function() {
-            initFromStorage();
-            
-            // Register service worker for offline functionality
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, function(err) {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            }
-        });
-    </script>
-</body>
-</html>
+        function stopStepCounting()
