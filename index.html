@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StrideTrack - Offline Step Counter</title>
+    <meta name="theme-color" content="#2E7D32"/>
+    <link rel="manifest" id="appManifest">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -246,6 +248,7 @@
             background: var(--secondary);
             margin-top: 30px;
             padding: 14px 28px;
+            display: none; /* Hidden by default until PWA is promotable */
         }
 
         .install-btn:hover {
@@ -325,6 +328,30 @@
         
         .step-pulse {
             animation: stepPulse 0.5s ease;
+        }
+
+        /* Notification toast */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .notification.show {
+            opacity: 1;
+            visibility: visible;
         }
 
         /* Settings panel */
@@ -450,7 +477,7 @@
         
         <div class="goal-progress">
             <div class="goal-text">
-                <span>Daily Goal: 10,000 steps</span>
+                <span>Daily Goal: <span id="dailyGoalValue">10,000</span> steps</span>
                 <span id="progressPercentage">0%</span>
             </div>
             <div class="progress-bar">
@@ -518,19 +545,24 @@
         </div>
         
         <button class="secondary" style="width: 100%; margin-top: 20px;">
-                <i class="fas fa-history"></i> View History
-            </button>
-            
-            <button class="secondary" style="width: 100%; margin-top: 10px;">
-                <i class="fas fa-trophy"></i> Achievements
-            </button>
-            
-            <button class="secondary" style="width: 100%; margin-top: 10px;">
-                <i class="fas fa-sync"></i> Sync Data
-            </button>
-        </div>
+            <i class="fas fa-history"></i> View History
+        </button>
         
-        <div class="overlay" id="overlay"></div>
+        <button class="secondary" style="width: 100%; margin-top: 10px;">
+            <i class="fas fa-trophy"></i> Achievements
+        </button>
+        
+        <button class="secondary" style="width: 100%; margin-top: 10px;">
+            <i class="fas fa-sync"></i> Sync Data
+        </button>
+    </div>
+    
+    <div class="overlay" id="overlay"></div>
+
+    <div class="notification" id="notification">
+        <i class="fas fa-info-circle"></i>
+        <span id="notificationText"></span>
+    </div>
     
     <footer>
         <p>StrideTrack &copy; 2023 | Works completely offline once installed</p>
@@ -559,6 +591,10 @@
         const weightInput = document.getElementById('weight');
         const sensitivityInput = document.getElementById('sensitivity');
         const sensitivityValue = document.getElementById('sensitivityValue');
+        const dailyGoalValue = document.getElementById('dailyGoalValue');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
+        const appManifest = document.getElementById('appManifest');
 
         // Step counter variables
         let stepCount = 0;
@@ -569,14 +605,37 @@
         let weight = 70; // kg
         let dailyGoal = 10000;
         let circumference = 2 * Math.PI * 130;
+        let deferredPrompt = null;
 
         // Set progress circle stroke
         progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
         progressCircle.style.strokeDashoffset = circumference;
 
+        // Create manifest dynamically
+        const manifest = {
+            "name": "StrideTrack - Step Counter",
+            "short_name": "StrideTrack",
+            "description": "An offline step tracking PWA",
+            "start_url": "/",
+            "display": "standalone",
+            "background_color": "#2E7D32",
+            "theme_color": "#2E7D32",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIGZpbGw9IiMyRTdEMzIiLz48cGF0aCBkPSJNMTIwIDExMkMxMjAgMTI0Ljg0MyAxMDkuODQzIDEzNSA5NyAxMzVTNzQgMTI0Ljg0MyA3NCAxMTJDNzQgOTkuMTU3MSA4NC4xNTcxIDg5IDk3IDg5QzEwOS44NDMgODkgMTIwIDk5LjE1NzEgMTIwIDExMloiIGZpbGw9IndoaXRlIi8+PHBhdGggZD0iTTk3IDU2QzY3IDU2IDQ2LjUgNzYuNSA0Ni41IDEwNi41QzQ2LjUgMTE2LjIzNyA1MC4xMDEzIDEyNS4xNjMgNTYuMzc1IDEzMi4xMjVDNTYuMzc1IDEzMi4xMjUgNjIuODc1IDE0Ni42MjUgOTcgMTU2QzEzMS4xMjUgMTQ2LjYyNSAxMzcuNjI1IDEzMi4xMjUgMTM3LjYyNSAxMzIuMTI1QzE0My44OTg3IDEyNS4xNjMgMTQ3LjUgMTE2LjIzNyAxNDcuNSAxMDYuNUMxNDcuNSA3Ni41IDEyNyA1NiA5NyA1NloiIGZpbGw9IndoaXRlIi8+PC9zdmc+",
+                    "sizes": "192x192",
+                    "type": "image/svg+xml"
+                }
+            ]
+        };
+
+        // Create a blob URL for the manifest
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        appManifest.href = URL.createObjectURL(manifestBlob);
+
         // Check if device has accelerometer
         if (!window.DeviceMotionEvent) {
-            showError('Sorry, your device does not support step counting. This app requires a device with an accelerometer.');
+            showNotification('Your device does not support step counting. This app requires a device with an accelerometer.', 'error');
             startBtn.disabled = true;
         }
         
@@ -597,6 +656,7 @@
             if (savedStepGoal) {
                 dailyGoal = parseInt(savedStepGoal);
                 stepGoalInput.value = dailyGoal;
+                dailyGoalValue.textContent = dailyGoal.toLocaleString();
             }
             
             if (savedStepLength) {
@@ -631,9 +691,11 @@
             if (!isCounting) {
                 startStepCounting();
                 startBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+                showNotification('Step counting started', 'success');
             } else {
                 stopStepCounting();
                 startBtn.innerHTML = '<i class="fas fa-play"></i> Start';
+                showNotification('Step counting paused', 'info');
             }
             isCounting = !isCounting;
         });
@@ -644,6 +706,7 @@
                 stepCount = 0;
                 updateUI();
                 localStorage.setItem('stepCount', stepCount);
+                showNotification('Step count reset to zero', 'info');
             }
         });
         
@@ -714,11 +777,13 @@
         window.addEventListener('online', function() {
             statusIndicator.classList.remove('offline');
             statusIndicator.querySelector('span').textContent = 'Online & Synced';
+            showNotification('Back online. Data will be synced.', 'success');
         });
 
         window.addEventListener('offline', function() {
             statusIndicator.classList.add('offline');
             statusIndicator.querySelector('span').textContent = 'Offline Mode';
+            showNotification('You are offline. App is using local data.', 'info');
         });
 
         // Check initial connection status
@@ -727,24 +792,52 @@
             statusIndicator.querySelector('span').textContent = 'Offline Mode';
         }
         
-        // Install app functionality
-        let deferredPrompt;
-
+        // Install app functionality - FIXED with refresh handling
         window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('beforeinstallprompt event fired');
+            // Prevent the mini-infobar from appearing on mobile
             e.preventDefault();
+            // Stash the event so it can be triggered later
             deferredPrompt = e;
+            // Show the install button
             installButton.style.display = 'block';
-        });
-
-        installButton.addEventListener('click', async () => {
-            if (deferredPrompt) {
+            // Save state to localStorage
+            localStorage.setItem('deferredPrompt', 'true');
+            
+            installButton.addEventListener('click', async () => {
+                console.log('Install button clicked');
+                // Hide the install button
+                installButton.style.display = 'none';
+                // Show the install prompt
                 deferredPrompt.prompt();
+                // Wait for the user to respond to the prompt
                 const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                
                 if (outcome === 'accepted') {
-                    installButton.style.display = 'none';
+                    showNotification('App installed successfully!', 'success');
+                } else {
+                    showNotification('App installation cancelled', 'error');
+                    // Re-show button after a delay if user cancels
+                    setTimeout(() => {
+                        installButton.style.display = 'block';
+                    }, 3000);
                 }
+                
+                // We've used the prompt, and can't use it again, throw it away
                 deferredPrompt = null;
-            }
+                localStorage.setItem('deferredPrompt', 'false');
+            });
+        });
+        
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('App was successfully installed');
+            // Hide the install button after successful installation
+            installButton.style.display = 'none';
+            // Clear the deferredPrompt so it can be garbage collected
+            deferredPrompt = null;
+            localStorage.setItem('deferredPrompt', 'false');
+            showNotification('App installed successfully! You can now use it offline.', 'success');
         });
         
         // Theme toggle
@@ -753,9 +846,11 @@
             if (document.body.classList.contains('dark-mode')) {
                 themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
                 localStorage.setItem('darkMode', 'true');
+                showNotification('Dark mode enabled', 'info');
             } else {
                 themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
                 localStorage.setItem('darkMode', 'false');
+                showNotification('Light mode enabled', 'info');
             }
         });
         
@@ -778,20 +873,24 @@
         // Settings change handlers
         stepGoalInput.addEventListener('change', function() {
             dailyGoal = parseInt(this.value);
+            dailyGoalValue.textContent = dailyGoal.toLocaleString();
             localStorage.setItem('stepGoal', dailyGoal);
             updateUI();
+            showNotification('Daily goal updated', 'success');
         });
         
         stepLengthInput.addEventListener('change', function() {
             stepLength = parseInt(this.value) / 100; // Convert cm to m
             localStorage.setItem('stepLength', this.value);
             updateUI();
+            showNotification('Step length updated', 'success');
         });
         
         weightInput.addEventListener('change', function() {
             weight = parseInt(this.value);
             localStorage.setItem('weight', weight);
             updateUI();
+            showNotification('Weight updated', 'success');
         });
         
         sensitivityInput.addEventListener('input', function() {
@@ -810,23 +909,84 @@
             }
         }
         
-        function showError(message) {
-            // In a real app, you'd show a proper error message UI
-            alert(message);
+        // Show notification function
+        function showNotification(message, type = 'info') {
+            notificationText.textContent = message;
+            
+            // Set color based on type
+            if (type === 'error') {
+                notification.style.background = 'rgba(211, 47, 47, 0.9)';
+                notification.style.color = 'white';
+            } else if (type === 'success') {
+                notification.style.background = 'rgba(56, 142, 60, 0.9)';
+                notification.style.color = 'white';
+            } else {
+                notification.style.background = 'rgba(33, 33, 33, 0.9)';
+                notification.style.color = 'white';
+            }
+            
+            notification.classList.add('show');
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
         }
         
         // Initialize the app
         window.addEventListener('load', function() {
             initFromStorage();
             
+            // Check for saved theme preference
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+            
             // Register service worker for offline functionality
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, function(err) {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
+                // Create a simple service worker inline
+                const swContent = `
+                    self.addEventListener('install', (event) => {
+                        console.log('Service Worker installing.');
+                        self.skipWaiting();
+                    });
+
+                    self.addEventListener('activate', (event) => {
+                        console.log('Service Worker activating.');
+                    });
+
+                    self.addEventListener('fetch', (event) => {
+                        // For a real app, you would add proper caching here
+                        event.respondWith(fetch(event.request));
+                    });
+                `;
+                
+                const blob = new Blob([swContent], { type: 'application/javascript' });
+                const swURL = URL.createObjectURL(blob);
+                
+                navigator.serviceWorker.register(swURL)
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                        URL.revokeObjectURL(swURL);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                        URL.revokeObjectURL(swURL);
+                        showNotification('Offline functionality limited', 'error');
+                    });
             }
+            
+            // Show welcome message
+            setTimeout(() => {
+                showNotification('StrideTrack is ready to use! Walk to count steps.', 'success');
+            }, 1000);
+        });
+
+        // Handle page refresh - recheck installation status
+        window.addEventListener('pageshow', function(event) {
+            // Always reinitialize, not just when persisted
+            initFromStorage();
         });
     </script>
 </body>
